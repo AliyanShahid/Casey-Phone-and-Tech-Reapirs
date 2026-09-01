@@ -61,6 +61,7 @@ export function AdminPricing() {
   const [modelForm, setModelForm] = useState(emptyModelForm);
   const [repairForm, setRepairForm] = useState(emptyRepairForm);
   const [priceForm, setPriceForm] = useState(emptyPriceForm);
+  const [priceBrandSlug, setPriceBrandSlug] = useState("");
 
   useEffect(() => {
     setCatalog(readCustomRepairCatalog());
@@ -105,6 +106,22 @@ export function AdminPricing() {
       }))
     ],
     [catalog.repairCategories]
+  );
+
+  const managedBrands = useMemo(
+    () => Array.from(
+      new Map(managedModels.map((model) => [model.brandSlug, model.brand])).entries()
+    )
+      .map(([slug, name]) => ({ slug, name }))
+      .sort((left, right) => left.name.localeCompare(right.name)),
+    [managedModels]
+  );
+
+  const priceModels = useMemo(
+    () => managedModels
+      .filter((model) => model.brandSlug === priceBrandSlug)
+      .sort((left, right) => left.name.localeCompare(right.name)),
+    [managedModels, priceBrandSlug]
   );
 
   function saveCatalog(next: CustomRepairCatalog) {
@@ -191,6 +208,7 @@ export function AdminPricing() {
       ]
     });
     setPriceForm(emptyPriceForm);
+    setPriceBrandSlug("");
   }
 
   function deleteModel(id: string) {
@@ -312,9 +330,16 @@ export function AdminPricing() {
               <p className="eyebrow">Map price</p>
               <h3>Set a repair price for one model</h3>
             </div>
-            <label className="wide">Model<select value={priceForm.modelSlug} onChange={(event) => setPriceForm({ ...priceForm, modelSlug: event.target.value })} required>
-              <option value="">Choose model</option>
-              {managedModels.map((model) => <option key={`${model.brandSlug}-${model.slug}`} value={model.slug}>{model.name} ({model.type})</option>)}
+            <label className="wide">Brand<select value={priceBrandSlug} onChange={(event) => {
+              setPriceBrandSlug(event.target.value);
+              setPriceForm((current) => ({ ...current, modelSlug: "" }));
+            }} required>
+              <option value="">Choose brand first</option>
+              {managedBrands.map((brand) => <option key={brand.slug} value={brand.slug}>{brand.name}</option>)}
+            </select></label>
+            <label className="wide">Model<select value={priceForm.modelSlug} onChange={(event) => setPriceForm({ ...priceForm, modelSlug: event.target.value })} disabled={!priceBrandSlug} required>
+              <option value="">{priceBrandSlug ? "Choose model" : "Select a brand to see its models"}</option>
+              {priceModels.map((model) => <option key={`${model.brandSlug}-${model.slug}`} value={model.slug}>{model.name} ({model.type})</option>)}
             </select></label>
             <label>Repair<select value={priceForm.repairSlug} onChange={(event) => setPriceForm({ ...priceForm, repairSlug: event.target.value })} required>
               <option value="">Choose repair</option>
